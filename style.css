@@ -1,0 +1,15 @@
+.important-container {
+  background-color: #E8EFFA;
+  padding: 20px !important;
+  border-radius: 10px;
+}
+
+.success {
+  text-align: center;
+  color: green;
+}
+
+.default {
+  text-align: center;
+  color: red; 
+}
