@@ -51,17 +51,62 @@ def createRadioInput(inputName, inputSelections):
     return field
 
 def createNumInput(inputName):
-    inputField = st.sidebar.number_input('Whats your ' + inputName + ' ?')
+    inputField = st.sidebar.number_input("What's your " + inputName + ' ?')
 
     return inputField
 
 st.sidebar.title("Enter Your Own Data!")
 contractType = createRadioInput("Contract Type", ('Cash Loans', 'Revolving Loans'))
 gender = createRadioInput("Gender", ('M', 'F'))
+# Ask about education level?
+educationLevel = createRadioInput("Highest level of education completed", ("Graduate", "Undergraduate", "Some undergraduate", "High School", "Less than high school"))
 income = createNumInput('income')
 creditAmount = createNumInput('Credit Amount')
 annuityAmount = createNumInput('Annuity Amount')
 famMembers = st.sidebar.slider('How Many Family Members do you Have?', 0, 20, 1)
+
+################## Classification Model ##################
+
+X = df.drop(columns = ["SK_ID_CURR", "TARGET"])
+X = pd.get_dummies(X, drop_first = True)
+y = df["TARGET"]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify = y, random_state = 42)
+oversample = RandomOverSampler(sampling_strategy="minority", random_state = 42)
+X_train_o, y_train_o = oversample.fit_resample(X_train, y_train)
+
+dt = DecisionTreeClassifier()
+dt.fit(X_train_o, y_train_o)
+
+userList = [income, creditAmount, annuityAmount, famMembers]
+
+# ContractType
+if contractType == 'Cash Loans': userList += [1, 0]
+else: userList += [0, 1]
+
+# Gender
+if gender == 'M': userList += [0, 1, 0]
+else: userList += [1, 0, 0]
+    
+# Education section?
+if educationLevel == 'Graduate': userList += [1, 0, 0, 0, 0]
+elif educationLevel == 'Undergraduate': userList += [0, 1, 0, 0, 0]
+elif educationLevel == 'Some undergraduate': userList += [0, 0, 1, 0, 0]
+elif educationLevel == 'High School': userList +=[0, 0, 0, 0, 1]
+else: userList += [0, 0, 0, 1, 0]
+ 
+
+userList = [userList]
+
+column_names = ["AMT_INCOME_TOTAL", "AMT_CREDIT", "AMT_ANNUITY", "CNT_FAM_MEMBERS", "NAME_CONTRACT_TYPE_Cash loans", \
+               "NAME_CONTRACT_TYPE_Revolving loans", "CODE_GENDER_F", "CODE_GENDER_M", "CODE_GENDER_XNA", 
+               "NAME_EDUCATION_TYPE_Academic_degree", "NAME_EDUCATION_TYPE_Higher education", \
+               "NAME_EDUCATION_TYPE_Incomplete higher", "NAME_EDUCATION_TYPE_Lower secondary", \
+               "NAME_EDUCATION_TYPE_Secondary / secondary special"]
+userData = pd.DataFrame(userList, columns = column_names)
+
+
+target = dt.predict(userData)
 
 
 ################## Input Section ##################
@@ -69,30 +114,16 @@ famMembers = st.sidebar.slider('How Many Family Members do you Have?', 0, 20, 1)
 st.markdown("<h2>Where Do You Fit In?</h2>", unsafe_allow_html=True)
 st.markdown("<p>Enter you data in the sidebar to see if our model will predict whether you will default or not.</p>", unsafe_allow_html=True)
 
+st.markdown("<p>User Input (for validation purposes, delete later)</p>", unsafe_allow_html=True)
+st.write(userData)
+
 
 # target = (output from model using input cols)
-target = 0
 
 if target == 0:
     st.markdown("<h1 class='success'>No Default! ✅</h1>", unsafe_allow_html=True)
 else:
     st.markdown("<h1 class='default'>Default! ❌</h1>", unsafe_allow_html=True)
-
-
-userData = (contractType, gender, income, creditAmount, annuityAmount, famMembers)
-
-################## Classification Model ##################
-
-X = df.drop(columns = ['TARGET'])
-X = pd.get_dummies(X, drop_first = True)
-y = df['TARGET']
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, stratify = y, random_state = 42)
-oversample = RandomOverSampler(sampling_strategy='minority', random_state = 42)
-X_train_o, y_train_o = oversample.fit_resample(X_train, y_train)
-
-dt = DecisionTreeClassifier()
-dt.fit(X_train_o, y_train_o)
 
 
 ################## Visualizations ##################
@@ -119,7 +150,7 @@ st.write(chart)
 # Append the new data to the existing chart.
 # chart.add_rows(userData)
 
-st.write('The current income is ', income)
+# Scatterplot of AMT_INCOME and EDUCATION_TYPE
 scatter = alt.Chart(sample).mark_point().encode(
      x=alt.X("AMT_INCOME_TOTAL", scale=alt.Scale(zero=False)),
      y=alt.Y("NAME_EDUCATION_TYPE", scale=alt.Scale(zero=False)),
@@ -130,10 +161,13 @@ scatter = alt.Chart(sample).mark_point().encode(
 
 st.write(scatter)
 
+# Heatmap of Amt Credit and Amt Annuity
 heatmap = alt.Chart(sample).mark_rect().encode(
     alt.X("AMT_CREDIT:Q", bin=True),
     alt.Y("AMT_ANNUITY:Q", bin=True),
     color='count()'
-)
+).properties(
+     width=600, height=400
+ )
 
 st.write(heatmap)
