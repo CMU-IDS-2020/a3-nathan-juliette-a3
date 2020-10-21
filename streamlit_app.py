@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import RandomOverSampler
 
 ################## CSS Stuff ##################
 
@@ -32,6 +35,8 @@ def load_data(url):
     return pd.read_csv(url)
 
 df = load_data("./application_data_min.csv")
+df.loc[df['CNT_FAM_MEMBERS'].isnull()] = 0
+df = df.dropna(subset = ['AMT_ANNUITY'])
 
 if st.checkbox("Show Raw Data"):
     st.write(df)
@@ -76,31 +81,59 @@ else:
 
 userData = (contractType, gender, income, creditAmount, annuityAmount, famMembers)
 
+################## Classification Model ##################
+
+X = df.drop(columns = ['TARGET'])
+X = pd.get_dummies(X, drop_first = True)
+y = df['TARGET']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify = y, random_state = 42)
+oversample = RandomOverSampler(sampling_strategy='minority', random_state = 42)
+X_train_o, y_train_o = oversample.fit_resample(X_train, y_train)
+
+dt = DecisionTreeClassifier()
+dt.fit(X_train_o, y_train_o)
+
 
 ################## Visualizations ##################
+
+### Sample of Data
+defaults = df[df['TARGET'] == 1]
+nondefaults = df[df['TARGET'] == 0]
+num_defaults = int(5000 * 0.080732)
+num_nondefaults = 5000 - num_defaults
+default_sample = defaults.sample(n = num_defaults)
+nondefault_sample = nondefaults.sample(n = num_nondefaults)
+sample = pd.concat([default_sample, nondefault_sample])
 
 st.markdown("<h2>Data Exploration</h2>", unsafe_allow_html=True)
 
 st.subheader('Distribution of Contract Types')
-chart = alt.Chart(df).mark_bar().encode(
+chart = alt.Chart(sample).mark_bar().encode(
     x=alt.X("NAME_CONTRACT_TYPE", scale=alt.Scale(zero=False)),
-    y=alt.Y("count(NAME_CONTRACT_TYPE)", scale=alt.Scale(zero=False)),
-    color=alt.Y("TARGET")
+    y=alt.Y("count()", scale=alt.Scale(zero=False)),
+    color=alt.Y("TARGET:O")
 )
 st.write(chart)
 
 # Append the new data to the existing chart.
 # chart.add_rows(userData)
 
-# income = st.number_input('Whats your income?')
-# st.write('The current income is ', income)
-# scatter = alt.Chart(df).mark_point().encode(
-#     x=alt.X("AMT_INCOME_TOTAL", scale=alt.Scale(zero=False)),
-#     y=alt.Y("NAME_EDUCATION_TYPE", scale=alt.Scale(zero=False)),
-#     color=alt.Y("TARGET")
-# )
-# ).properties(
-#     width=600, height=400
-# ).interactive()
+st.write('The current income is ', income)
+scatter = alt.Chart(sample).mark_point().encode(
+     x=alt.X("AMT_INCOME_TOTAL", scale=alt.Scale(zero=False)),
+     y=alt.Y("NAME_EDUCATION_TYPE", scale=alt.Scale(zero=False)),
+     color=alt.Y("TARGET:O")
+).properties(
+     width=600, height=400
+ ).interactive()
 
-# st.write(scatter)
+st.write(scatter)
+
+heatmap = alt.Chart(sample).mark_rect().encode(
+    alt.X("AMT_CREDIT:Q", bin=True),
+    alt.Y("AMT_ANNUITY:Q", bin=True),
+    color='count()'
+)
+
+st.write(heatmap)
