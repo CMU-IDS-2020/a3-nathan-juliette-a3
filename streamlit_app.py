@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import train_test_split
-from imblearn.over_sampling import RandomOverSampler
+import sklearn as sk
+#from sklearn.tree import DecisionTreeClassifier
+#from sklearn.model_selection import train_test_split
+import imblearn as im
+#from imblearn.over_sampling import RandomOverSampler
 
 ################## CSS Stuff ##################
 
@@ -71,11 +73,11 @@ X = df.drop(columns = ["SK_ID_CURR", "TARGET"])
 X = pd.get_dummies(X, drop_first = True)
 y = df["TARGET"]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, stratify = y, random_state = 42)
-oversample = RandomOverSampler(sampling_strategy="minority", random_state = 42)
+X_train, X_test, y_train, y_test = sk.model_selection.train_test_split(X, y, stratify = y, random_state = 42)
+oversample = im.over_sampling.RandomOverSampler(sampling_strategy="minority", random_state = 42)
 X_train_o, y_train_o = oversample.fit_resample(X_train, y_train)
 
-dt = DecisionTreeClassifier()
+dt = sk.tree.DecisionTreeClassifier()
 dt.fit(X_train_o, y_train_o)
 
 userList = [income, creditAmount, annuityAmount, famMembers]
