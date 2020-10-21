@@ -17,6 +17,7 @@ local_css("style.css")
 ################## Intro ##################
 
 st.title("Analyzing Credit Card Defaults")
+st.markdown("<p class='subtitle'>By Juliette Wong & Nathan Jen</p>", unsafe_allow_html=True)
 st.markdown("<h2>What is a Default?</h2>", unsafe_allow_html=True)
 
 defaultDescription ="""
@@ -56,14 +57,14 @@ def createNumInput(inputName):
     return inputField
 
 st.sidebar.title("Enter Your Own Data!")
-contractType = createRadioInput("Contract Type", ('Cash Loans', 'Revolving Loans'))
-gender = createRadioInput("Gender", ('M', 'F'))
-# Ask about education level?
-educationLevel = createRadioInput("Highest level of education completed", ("Graduate", "Undergraduate", "Some undergraduate", "High School", "Less than high school"))
-income = createNumInput('income')
+income = createNumInput('Income')
 creditAmount = createNumInput('Credit Amount')
 annuityAmount = createNumInput('Annuity Amount')
 famMembers = st.sidebar.slider('How Many Family Members do you Have?', 0, 20, 1)
+contractType = createRadioInput("Contract Type", ('Cash Loans', 'Revolving Loans'))
+gender = createRadioInput("Gender", ('M', 'F'))
+educationLevel = createRadioInput("Highest level of education completed", ("Graduate", "Undergraduate", "Some undergraduate", "High School", "Less than high school"))
+
 
 ################## Classification Model ##################
 
@@ -105,28 +106,25 @@ column_names = ["AMT_INCOME_TOTAL", "AMT_CREDIT", "AMT_ANNUITY", "CNT_FAM_MEMBER
                "NAME_EDUCATION_TYPE_Secondary / secondary special"]
 userData = pd.DataFrame(userList, columns = column_names)
 
-
+# target = output from model using input cols
 target = dt.predict(userData)
 
 
 ################## Input Section ##################
 
 st.markdown("<h2>Where Do You Fit In?</h2>", unsafe_allow_html=True)
-st.markdown("<p>Enter you data in the sidebar to see if our model will predict whether you will default or not.</p>", unsafe_allow_html=True)
-
-st.markdown("<p>User Input (for validation purposes, delete later)</p>", unsafe_allow_html=True)
+st.markdown("<p>Here is the data currently given to our model. </p>", unsafe_allow_html=True)
+st.markdown("<p><i>Enter your own data to see what our model predicts for you!</i></p>", unsafe_allow_html=True)
 st.write(userData)
 
 
-# target = (output from model using input cols)
-
 if target == 0:
-    st.markdown("<h1 class='success'>No Default! ✅</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Prediction: <span class='success'>No Default! ✅<span></h1>", unsafe_allow_html=True)
 else:
     st.markdown("<h1 class='default'>Default! ❌</h1>", unsafe_allow_html=True)
 
 
-################## Visualizations ##################
+################## Univariate Visualizations ##################
 
 ### Sample of Data
 defaults = df[df['TARGET'] == 1]
@@ -136,6 +134,25 @@ num_nondefaults = 5000 - num_defaults
 default_sample = defaults.sample(n = num_defaults)
 nondefault_sample = nondefaults.sample(n = num_nondefaults)
 sample = pd.concat([default_sample, nondefault_sample])
+
+def createTrellisHistogram(col):
+    trellis = alt.Chart(sample).mark_bar().encode(
+     x=alt.X(col),
+     y=alt.Y("count()", scale=alt.Scale(zero=False)),
+     column='TARGET'
+    ) 
+    st.write(trellis)
+
+def createUnivariateVis(cols):
+    for i in cols:
+        createTrellisHistogram(i)
+
+cols=["AMT_INCOME_TOTAL", "AMT_CREDIT", "AMT_ANNUITY", "CNT_FAM_MEMBERS", "NAME_CONTRACT_TYPE", "CODE_GENDER", "NAME_EDUCATION_TYPE"]
+createUnivariateVis(cols)
+st.write(sample)
+
+
+################## Data Exploration ##################
 
 st.markdown("<h2>Data Exploration</h2>", unsafe_allow_html=True)
 
