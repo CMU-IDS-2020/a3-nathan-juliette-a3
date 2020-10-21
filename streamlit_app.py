@@ -134,11 +134,16 @@ num_nondefaults = 5000 - num_defaults
 default_sample = defaults.sample(n = num_defaults)
 nondefault_sample = nondefaults.sample(n = num_nondefaults)
 sample = pd.concat([default_sample, nondefault_sample])
+sample['TARGET'] = sample['TARGET'].replace([0],'No Default')
+sample['TARGET'] = sample['TARGET'].replace([1],'Default')
+
+# append user data to col
+# sample.append({"SK_ID_CURR": 0, "AMT_INCOME_TOTAL": income, "AMT_CREDIT": creditAmount, "AMT_ANNUITY": annuityAmount, "CNT_FAM_MEMBERS": famMembers, "NAME_CONTRACT_TYPE": contractType, "CODE_GENDER": gender, "NAME_EDUCATION_TYPE": educationLevel})
 
 def createTrellisHistogram(col):
     trellis = alt.Chart(sample).mark_bar().encode(
      x=alt.X(col),
-     y=alt.Y("count()", scale=alt.Scale(zero=False)),
+     y=alt.Y("count()"),
      column='TARGET'
     ) 
     st.write(trellis)
