@@ -166,7 +166,7 @@ targetChart = alt.Chart(sample).mark_bar().encode(
         alt.datum.TARGET == targetVal,
         alt.value('#f43666'),     # same hex as color for radio buttons
         alt.value('gray'))
-).properties(width = 800, height = 200)
+).properties(width = 600, height = 200)
 
 st.write(targetChart)
 
@@ -187,7 +187,7 @@ def createSideBySideHistogram(col, colValue):
         x=alt.X(col, bin = True),
         y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
         color=alt.value('gray')
-        ).properties(title='Distribution of ' + title + ' - Default')
+        ).properties(width = 300, title='Distribution of ' + title + ' - Default')
     rule1 = base1.mark_rule(color='#f43666').encode(
     x=alt.X(colValue),
     size=alt.value(4))
@@ -199,7 +199,7 @@ def createSideBySideHistogram(col, colValue):
         x=alt.X(col, bin = True),
         y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
         color=alt.value('gray')
-        ).properties(title='Distribution of ' + title + ' - Nondefault') 
+        ).properties(width = 300, title='Distribution of ' + title + ' - Nondefault') 
     rule2 = base2.mark_rule(color='#f43666').encode(
     x=alt.X(colValue),
     size=alt.value(4))
@@ -231,7 +231,7 @@ def createSideBySideBar(col):
         condition,
         alt.value('#f43666'),     # same hex as color for radio buttons
         alt.value('gray'))
-        ).properties(width = 415, title='Distribution of ' + title + ' - Default')
+        ).properties(width = 300, title='Distribution of ' + title + ' - Default')
     
     bar2 = alt.Chart(nondefault_sample).transform_joinaggregate(
         total='count(*)').transform_calculate(
@@ -242,7 +242,7 @@ def createSideBySideBar(col):
         condition,
         alt.value('#f43666'),     # same hex as color for radio buttons
         alt.value('gray'))
-        ).properties(width = 415, title='Distribution of ' + title + ' - Nondefault')
+        ).properties(width = 300, title='Distribution of ' + title + ' - Nondefault')
     st.write(bar1 | bar2)
 
     
@@ -263,8 +263,8 @@ brush_scatter = alt.Chart(sample).mark_circle(opacity = 0.5).encode(
     y = alt.Y('AMT_INCOME_TOTAL'),
     color=alt.condition(brush,'TARGET:N', alt.value('lightgray'), scale=alt.Scale(domain=domain, range=range_))
 ).properties(
-    width=400,
-    height=400
+    width=350,
+    height=350
 ).add_selection(
     brush
 )
@@ -275,7 +275,7 @@ bars = alt.Chart(sample).mark_bar().encode(
     x='count(TARGET)'
 ).transform_filter(
     brush
-).properties(width = 800)
+).properties(width = 700)
 
 st.write(bars & (brush_scatter.encode(x='AMT_CREDIT') | brush_scatter.encode(x = 'AMT_ANNUITY')))
 
@@ -291,7 +291,7 @@ feature_chart = alt.Chart(features).mark_bar().encode(
     y=alt.Y('Feature Name:O', sort='-x'),
     x='Feature importance:Q',
     color=alt.value('#f43666')
-).properties(width = 800)
+).properties(width = 600)
 st.write(feature_chart)
 
 pred = dt.predict(X_test)
@@ -306,5 +306,5 @@ confusion_mat = alt.Chart(source).mark_rect().encode(
     x='Predicted:O',
     y='Actual:O',
     color=alt.Color('z:Q', scale=alt.Scale(scheme='purplered'))
-).properties(title = 'Confusion matrix - test values', width = 500, height = 500)
+).properties(title = 'Confusion matrix - test values', width = 300, height = 300)
 st.write(confusion_mat)
