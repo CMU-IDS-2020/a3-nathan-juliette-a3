@@ -20,7 +20,7 @@ local_css("style.css")
 
 st.title("Analyzing Credit Card Defaults")
 st.markdown("<p class='subtitle'>By Juliette Wong & Nathan Jen</p>", unsafe_allow_html=True)
-st.markdown("<h2>What is a Default?</h2>", unsafe_allow_html=True)
+st.markdown("<h2>I. What is a Default?</h2>", unsafe_allow_html=True)
 
 defaultDescription ="""
                         <p class='important-container'>
@@ -114,7 +114,7 @@ target = dt.predict(userData)
 
 ################## Input Section ##################
 
-st.markdown("<h2>Where Do You Fit In?</h2>", unsafe_allow_html=True)
+st.markdown("<h2>II. Where Do You Fit In?</h2>", unsafe_allow_html=True)
 st.markdown("<p><i>Enter your own data to see what our model predicts for you!</i></p>", unsafe_allow_html=True)
 st.markdown("<p>Here is the data currently given to our model. </p>", unsafe_allow_html=True)
 st.write(userData)
@@ -129,7 +129,8 @@ else:
 
 ################## Univariate Visualizations ##################
 
-st.markdown("<h2>Univariate Exploration</h2>", unsafe_allow_html=True)
+st.markdown("<h2>III. Univariate Exploration</h2>", unsafe_allow_html=True)
+st.markdown("<p><i>Please note that the pink lines in these visualizations below represent your input.</i></p>", unsafe_allow_html=True)
 
 ### Sample of Data
 defaults = df[df['TARGET'] == 1]
@@ -252,7 +253,7 @@ for col in categoricalCols:
 
 ################## Data Exploration ##################
 
-st.markdown("<h2>Multivariate Exploration</h2>", unsafe_allow_html=True)
+st.markdown("<h2>IV. Multivariate Exploration</h2>", unsafe_allow_html=True)
 
 
 domain = ['Default', 'No Default']
@@ -269,6 +270,19 @@ brush_scatter = alt.Chart(sample).mark_circle(opacity = 0.5).encode(
     brush
 )
 
+selection = alt.selection_multi(fields=['TARGET'], bind='legend')
+school = alt.Chart(sample).mark_circle(opacity = 0.9).encode(
+    y = alt.Y('NAME_EDUCATION_TYPE'),
+    color=alt.condition(brush,'TARGET:N', alt.value('lightgray'), scale=alt.Scale(domain=domain, range=range_)),
+    size='count()'
+).properties(
+    width=350,
+    height=350
+).add_selection(
+    # brush
+    selection
+)
+
 bars = alt.Chart(sample).mark_bar().encode(
     y='TARGET:O',
     color='TARGET:O',
@@ -277,7 +291,10 @@ bars = alt.Chart(sample).mark_bar().encode(
     brush
 ).properties(width = 700)
 
-st.write(bars & (brush_scatter.encode(x='AMT_CREDIT') | brush_scatter.encode(x = 'AMT_ANNUITY')))
+st.write(bars & 
+    (brush_scatter.encode(x='AMT_CREDIT') | brush_scatter.encode(x = 'AMT_ANNUITY')) & 
+    (school.encode(x='AMT_INCOME_TOTAL') | school.encode(x = 'CNT_FAM_MEMBERS'))
+)
 
 ################## Model Exploration ##################
 
