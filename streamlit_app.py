@@ -123,6 +123,12 @@ if target == 0:
 else:
     st.markdown("<h1 class='default'>Default! ❌</h1>", unsafe_allow_html=True)
 
+targetBar = alt.Chart(df).mark_bar().encode(
+                x=alt.X("TARGET", axis=alt.Axis(labelAngle = 0)),
+                y='count()',
+            )
+
+st.write(targetBar)
 
 ################## Univariate Visualizations ##################
 
