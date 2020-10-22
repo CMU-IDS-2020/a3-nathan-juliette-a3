@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
+from sklearn.metrics import confusion_matrix
 
 ################## CSS Stuff ##################
 
@@ -39,8 +41,8 @@ df = load_data("./application_data_min.csv")
 df.loc[df['CNT_FAM_MEMBERS'].isnull()] = 0
 df = df.dropna(subset = ['AMT_ANNUITY'])
 
-if st.checkbox("Show Raw Data"):
-    st.write(df)
+if st.checkbox("Show First 5 Rows of Data"):
+    st.write(df.head())
 
 
 ################## Sidebar ##################
@@ -123,12 +125,7 @@ if target == 0:
 else:
     st.markdown("<h1 class='default'>Default! ❌</h1>", unsafe_allow_html=True)
 
-targetBar = alt.Chart(df).mark_bar().encode(
-                x=alt.X("TARGET", axis=alt.Axis(labelAngle = 0)),
-                y='count()',
-            )
 
-st.write(targetBar)
 
 ################## Univariate Visualizations ##################
 
@@ -153,49 +150,101 @@ for df in [sample, default_sample, nondefault_sample]:
     df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Lower secondary'], 'High School')
     df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Secondary / secondary special'], '< High School')
     #df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].astype('category')
-    #df['NAME_EDUCATION_TYPE'].cat.reorder_categories(['Graduate', 'Undergrad', 'Some Undergrad', 'High School', '< High School'])
-    
+    #df['NAME_EDUCATION_TYPE'].cat.reorder_categories(['Graduate', 'Undergrad', 'Some Undergrad', 'High School', '< High School'])   
+
 
 # append user data to col
 # sample.append({"SK_ID_CURR": 0, "AMT_INCOME_TOTAL": income, "AMT_CREDIT": creditAmount, "AMT_ANNUITY": annuityAmount, "CNT_FAM_MEMBERS": famMembers, "NAME_CONTRACT_TYPE": contractType, "CODE_GENDER": gender, "NAME_EDUCATION_TYPE": educationLevel})
 
-# TODO: Figure out the colors?
-def createSideBySideHistogram(col):   
-    hist1 = alt.Chart(default_sample).transform_joinaggregate(
-        total='count(*)').transform_calculate(
-        pct='1 / datum.total').mark_bar().encode(
-        x=alt.X(col, bin = True),
-        y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
-        ).properties(title='Distribution of ' + col + ' - Default')
+targetVal = 'No Default'
+if target == 1: targetVal = 'Default'
+
+targetChart = alt.Chart(sample).mark_bar().encode(
+    y='TARGET:O',
+    x='count(TARGET)',
+    color=alt.condition(
+        alt.datum.TARGET == targetVal,
+        alt.value('#f43666'),     # same hex as color for radio buttons
+        alt.value('gray'))
+).properties(width = 800, height = 200)
+
+st.write(targetChart)
+
+default_sample['INCOME_VAL'] = income
+default_sample['CREDIT_VAL'] = creditAmount
+default_sample['ANNUITY_VAL'] = annuityAmount
+nondefault_sample['INCOME_VAL'] = income
+nondefault_sample['CREDIT_VAL'] = creditAmount
+nondefault_sample['ANNUITY_VAL'] = annuityAmount
+
+def createSideBySideHistogram(col, colValue):   
+    title = col.replace("_", " ").title()
     
-    hist2 = alt.Chart(nondefault_sample).transform_joinaggregate(
+    base1 = alt.Chart(default_sample)
+    hist1 = base1.transform_joinaggregate(
         total='count(*)').transform_calculate(
         pct='1 / datum.total').mark_bar().encode(
         x=alt.X(col, bin = True),
         y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
-        ).properties(title='Distribution of ' + col + ' - Nondefault') 
-    st.write(hist1 | hist2)
+        color=alt.value('gray')
+        ).properties(title='Distribution of ' + title + ' - Default')
+    rule1 = base1.mark_rule(color='#f43666').encode(
+    x=alt.X(colValue),
+    size=alt.value(4))
+ 
+    base2 = alt.Chart(nondefault_sample)
+    hist2 = base2.transform_joinaggregate(
+        total='count(*)').transform_calculate(
+        pct='1 / datum.total').mark_bar().encode(
+        x=alt.X(col, bin = True),
+        y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
+        color=alt.value('gray')
+        ).properties(title='Distribution of ' + title + ' - Nondefault') 
+    rule2 = base2.mark_rule(color='#f43666').encode(
+    x=alt.X(colValue),
+    size=alt.value(4))
+    st.write(hist1 + rule1 | hist2 + rule2)
 
 numericalCols = ["AMT_INCOME_TOTAL", "AMT_CREDIT", "AMT_ANNUITY"]
-for col in numericalCols:
-    createSideBySideHistogram(col)
+numericalVals = ["INCOME_VAL", "CREDIT_VAL", "ANNUITY_VAL"]
+for i in range(len(numericalCols)):
+    createSideBySideHistogram(numericalCols[i], numericalVals[i])
+
+
     
-# TODO: Figure out the colors?
+educationCode = educationLevel
+if educationLevel == 'Undergraduate': educationCode = 'Undergrad'
+elif educationLevel == 'Some undergraduate': educationCode = 'Some Undergrad'
+elif educationLevel == 'Less than high school': educationCode = '< High School'
+    
+    
 def createSideBySideBar(col):
+    title = col.split(':')[0].replace("_", " ").title()
+    condition = (alt.datum.NAME_CONTRACT_TYPE == contractType) | (alt.datum.CODE_GENDER == gender) | \
+                (alt.datum.NAME_EDUCATION_TYPE == educationCode) | (alt.datum.CNT_FAM_MEMBERS == famMembers)
     bar1 = alt.Chart(default_sample).transform_joinaggregate(
         total='count(*)').transform_calculate(
         pct='1 / datum.total').mark_bar().encode(
         x=alt.X(col, axis=alt.Axis(labelAngle = 0)),
         y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
-        ).properties(width = 415, title='Distribution of ' + col + ' - Default')
+        color=alt.condition(
+        condition,
+        alt.value('#f43666'),     # same hex as color for radio buttons
+        alt.value('gray'))
+        ).properties(width = 415, title='Distribution of ' + title + ' - Default')
     
     bar2 = alt.Chart(nondefault_sample).transform_joinaggregate(
         total='count(*)').transform_calculate(
         pct='1 / datum.total').mark_bar().encode(
         x=alt.X(col, axis=alt.Axis(labelAngle = 0)),
         y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
-        ).properties(width = 415, title='Distribution of ' + col + ' - Nondefault')
+        color=alt.condition(
+        condition,
+        alt.value('#f43666'),     # same hex as color for radio buttons
+        alt.value('gray'))
+        ).properties(width = 415, title='Distribution of ' + title + ' - Nondefault')
     st.write(bar1 | bar2)
+
     
 categoricalCols = ["CNT_FAM_MEMBERS:O", "NAME_CONTRACT_TYPE", "CODE_GENDER", "NAME_EDUCATION_TYPE"]
 for col in categoricalCols:
@@ -205,10 +254,14 @@ for col in categoricalCols:
 
 st.markdown("<h2>Multivariate Exploration</h2>", unsafe_allow_html=True)
 
+
+domain = ['Default', 'No Default']
+range_ = ['#800080', 'steelblue']
+
 brush = alt.selection_interval()
-brush_scatter = alt.Chart(sample).mark_point().encode(
+brush_scatter = alt.Chart(sample).mark_circle(opacity = 0.5).encode(
     y = alt.Y('AMT_INCOME_TOTAL'),
-    color=alt.condition(brush,'TARGET:O', alt.value('lightgray'), scale=alt.Scale(scheme='dark2'))
+    color=alt.condition(brush,'TARGET:N', alt.value('lightgray'), scale=alt.Scale(domain=domain, range=range_))
 ).properties(
     width=400,
     height=400
@@ -216,4 +269,42 @@ brush_scatter = alt.Chart(sample).mark_point().encode(
     brush
 )
 
-st.write(brush_scatter.encode(x='AMT_CREDIT') | brush_scatter.encode(x = 'AMT_ANNUITY'))
+bars = alt.Chart(sample).mark_bar().encode(
+    y='TARGET:O',
+    color='TARGET:O',
+    x='count(TARGET)'
+).transform_filter(
+    brush
+).properties(width = 800)
+
+st.write(bars & (brush_scatter.encode(x='AMT_CREDIT') | brush_scatter.encode(x = 'AMT_ANNUITY')))
+
+################## Model Exploration ##################
+
+st.markdown("<h2>Model Exploration</h2>", unsafe_allow_html=True)
+
+feature_names = X.columns
+feature_importances = dt.feature_importances_
+features = pd.DataFrame({'Feature Name':feature_names, 'Feature importance':feature_importances})
+
+feature_chart = alt.Chart(features).mark_bar().encode(
+    y=alt.Y('Feature Name:O', sort='-x'),
+    x='Feature importance:Q',
+    color=alt.value('#f43666')
+).properties(width = 800)
+st.write(feature_chart)
+
+pred = dt.predict(X_test)
+
+x_val, y_val = np.meshgrid(range(0, 2), range(0, 2))
+z = confusion_matrix(pred, y_test)
+source = pd.DataFrame({'Predicted': x_val.ravel(),
+                     'Actual': y_val.ravel(),
+                     'z': z.ravel()})
+
+confusion_mat = alt.Chart(source).mark_rect().encode(
+    x='Predicted:O',
+    y='Actual:O',
+    color=alt.Color('z:Q', scale=alt.Scale(scheme='purplered'))
+).properties(title = 'Confusion matrix - test values', width = 500, height = 500)
+st.write(confusion_mat)
