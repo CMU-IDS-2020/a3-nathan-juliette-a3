@@ -113,8 +113,8 @@ target = dt.predict(userData)
 ################## Input Section ##################
 
 st.markdown("<h2>Where Do You Fit In?</h2>", unsafe_allow_html=True)
-st.markdown("<p>Here is the data currently given to our model. </p>", unsafe_allow_html=True)
 st.markdown("<p><i>Enter your own data to see what our model predicts for you!</i></p>", unsafe_allow_html=True)
+st.markdown("<p>Here is the data currently given to our model. </p>", unsafe_allow_html=True)
 st.write(userData)
 
 
@@ -126,70 +126,88 @@ else:
 
 ################## Univariate Visualizations ##################
 
+st.markdown("<h2>Univariate Exploration</h2>", unsafe_allow_html=True)
+
 ### Sample of Data
 defaults = df[df['TARGET'] == 1]
 nondefaults = df[df['TARGET'] == 0]
 num_defaults = int(5000 * 0.080732)
 num_nondefaults = 5000 - num_defaults
-default_sample = defaults.sample(n = num_defaults)
-nondefault_sample = nondefaults.sample(n = num_nondefaults)
+default_sample = defaults.sample(n = num_defaults, random_state = 40)
+nondefault_sample = nondefaults.sample(n = num_nondefaults, random_state = 40)
 sample = pd.concat([default_sample, nondefault_sample])
+
+# Fix names
 sample['TARGET'] = sample['TARGET'].replace([0],'No Default')
 sample['TARGET'] = sample['TARGET'].replace([1],'Default')
+for df in [sample, default_sample, nondefault_sample]:
+    df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Academic degree'], 'Graduate')
+    df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Higher education'], 'Undergrad')
+    df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Incomplete Higher'], 'Some Undergrad')
+    df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Lower secondary'], 'High School')
+    df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Secondary / secondary special'], '< High School')
+    #df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].astype('category')
+    #df['NAME_EDUCATION_TYPE'].cat.reorder_categories(['Graduate', 'Undergrad', 'Some Undergrad', 'High School', '< High School'])
+    
 
 # append user data to col
 # sample.append({"SK_ID_CURR": 0, "AMT_INCOME_TOTAL": income, "AMT_CREDIT": creditAmount, "AMT_ANNUITY": annuityAmount, "CNT_FAM_MEMBERS": famMembers, "NAME_CONTRACT_TYPE": contractType, "CODE_GENDER": gender, "NAME_EDUCATION_TYPE": educationLevel})
 
-def createTrellisHistogram(col):
-    trellis = alt.Chart(sample).mark_bar().encode(
-     x=alt.X(col),
-     y=alt.Y("count()"),
-     column='TARGET'
-    ) 
-    st.write(trellis)
+# TODO: Figure out the colors?
+def createSideBySideHistogram(col):   
+    hist1 = alt.Chart(default_sample).transform_joinaggregate(
+        total='count(*)').transform_calculate(
+        pct='1 / datum.total').mark_bar().encode(
+        x=alt.X(col, bin = True),
+        y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
+        ).properties(title='Distribution of ' + col + ' - Default')
+    
+    hist2 = alt.Chart(nondefault_sample).transform_joinaggregate(
+        total='count(*)').transform_calculate(
+        pct='1 / datum.total').mark_bar().encode(
+        x=alt.X(col, bin = True),
+        y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
+        ).properties(title='Distribution of ' + col + ' - Nondefault') 
+    st.write(hist1 | hist2)
 
-def createUnivariateVis(cols):
-    for i in cols:
-        createTrellisHistogram(i)
-
-cols=["AMT_INCOME_TOTAL", "AMT_CREDIT", "AMT_ANNUITY", "CNT_FAM_MEMBERS", "NAME_CONTRACT_TYPE", "CODE_GENDER", "NAME_EDUCATION_TYPE"]
-createUnivariateVis(cols)
-st.write(sample)
-
+numericalCols = ["AMT_INCOME_TOTAL", "AMT_CREDIT", "AMT_ANNUITY"]
+for col in numericalCols:
+    createSideBySideHistogram(col)
+    
+# TODO: Figure out the colors?
+def createSideBySideBar(col):
+    bar1 = alt.Chart(default_sample).transform_joinaggregate(
+        total='count(*)').transform_calculate(
+        pct='1 / datum.total').mark_bar().encode(
+        x=alt.X(col, axis=alt.Axis(labelAngle = 0)),
+        y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
+        ).properties(width = 415, title='Distribution of ' + col + ' - Default')
+    
+    bar2 = alt.Chart(nondefault_sample).transform_joinaggregate(
+        total='count(*)').transform_calculate(
+        pct='1 / datum.total').mark_bar().encode(
+        x=alt.X(col, axis=alt.Axis(labelAngle = 0)),
+        y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
+        ).properties(width = 415, title='Distribution of ' + col + ' - Nondefault')
+    st.write(bar1 | bar2)
+    
+categoricalCols = ["CNT_FAM_MEMBERS:O", "NAME_CONTRACT_TYPE", "CODE_GENDER", "NAME_EDUCATION_TYPE"]
+for col in categoricalCols:
+    createSideBySideBar(col)
 
 ################## Data Exploration ##################
 
-st.markdown("<h2>Data Exploration</h2>", unsafe_allow_html=True)
+st.markdown("<h2>Multivariate Exploration</h2>", unsafe_allow_html=True)
 
-st.subheader('Distribution of Contract Types')
-chart = alt.Chart(sample).mark_bar().encode(
-    x=alt.X("NAME_CONTRACT_TYPE", scale=alt.Scale(zero=False)),
-    y=alt.Y("count()", scale=alt.Scale(zero=False)),
-    color=alt.Y("TARGET:O")
+brush = alt.selection_interval()
+brush_scatter = alt.Chart(sample).mark_point().encode(
+    y = alt.Y('AMT_INCOME_TOTAL'),
+    color=alt.condition(brush,'TARGET:O', alt.value('lightgray'), scale=alt.Scale(scheme='dark2'))
+).properties(
+    width=400,
+    height=400
+).add_selection(
+    brush
 )
-st.write(chart)
 
-# Append the new data to the existing chart.
-# chart.add_rows(userData)
-
-# Scatterplot of AMT_INCOME and EDUCATION_TYPE
-scatter = alt.Chart(sample).mark_point().encode(
-     x=alt.X("AMT_INCOME_TOTAL", scale=alt.Scale(zero=False)),
-     y=alt.Y("NAME_EDUCATION_TYPE", scale=alt.Scale(zero=False)),
-     color=alt.Y("TARGET:O")
-).properties(
-     width=600, height=400
- ).interactive()
-
-st.write(scatter)
-
-# Heatmap of Amt Credit and Amt Annuity
-heatmap = alt.Chart(sample).mark_rect().encode(
-    alt.X("AMT_CREDIT:Q", bin=True),
-    alt.Y("AMT_ANNUITY:Q", bin=True),
-    color='count()'
-).properties(
-     width=600, height=400
- )
-
-st.write(heatmap)
+st.write(brush_scatter.encode(x='AMT_CREDIT') | brush_scatter.encode(x = 'AMT_ANNUITY'))
