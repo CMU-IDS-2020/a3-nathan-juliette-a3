@@ -63,7 +63,7 @@ income = createNumInput('Income')
 creditAmount = createNumInput('Credit Amount')
 annuityAmount = createNumInput('Annuity Amount')
 famMembers = st.sidebar.slider('How Many Family Members do you Have?', 0, 20, 1)
-contractType = createRadioInput("Contract Type", ('Cash Loans', 'Revolving Loans'))
+contractType = createRadioInput("Contract Type", ('Cash loans', 'Revolving loans'))
 gender = createRadioInput("Gender", ('M', 'F'))
 educationLevel = createRadioInput("Highest level of education completed", ("Graduate", "Undergraduate", "Some undergraduate", "High School", "Less than high school"))
 
@@ -139,7 +139,7 @@ num_defaults = int(5000 * 0.080732)
 num_nondefaults = 5000 - num_defaults
 default_sample = defaults.sample(n = num_defaults, random_state = 40)
 nondefault_sample = nondefaults.sample(n = num_nondefaults, random_state = 40)
-sample = pd.concat([default_sample, nondefault_sample])
+sample = pd.concat([nondefault_sample, default_sample])
 
 # Fix names
 sample['TARGET'] = sample['TARGET'].replace([0],'No Default')
@@ -147,7 +147,7 @@ sample['TARGET'] = sample['TARGET'].replace([1],'Default')
 for df in [sample, default_sample, nondefault_sample]:
     df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Academic degree'], 'Graduate')
     df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Higher education'], 'Undergrad')
-    df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Incomplete Higher'], 'Some Undergrad')
+    df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Incomplete higher'], 'Some Undergrad')
     df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Lower secondary'], 'High School')
     df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].replace(['Secondary / secondary special'], '< High School')
     #df['NAME_EDUCATION_TYPE'] = df['NAME_EDUCATION_TYPE'].astype('category')
@@ -218,6 +218,7 @@ if educationLevel == 'Undergraduate': educationCode = 'Undergrad'
 elif educationLevel == 'Some undergraduate': educationCode = 'Some Undergrad'
 elif educationLevel == 'Less than high school': educationCode = '< High School'
     
+educationOrder = ['< High School', 'High School', 'Some Undergrad', 'Undergrad', 'Graduate']    
     
 def createSideBySideBar(col):
     title = col.split(':')[0].replace("_", " ").title()
@@ -226,7 +227,7 @@ def createSideBySideBar(col):
     bar1 = alt.Chart(default_sample).transform_joinaggregate(
         total='count(*)').transform_calculate(
         pct='1 / datum.total').mark_bar().encode(
-        x=alt.X(col, axis=alt.Axis(labelAngle = 0)),
+        x=alt.X(col, axis=alt.Axis(labelAngle = 0), sort = educationOrder),
         y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
         color=alt.condition(
         condition,
@@ -237,7 +238,7 @@ def createSideBySideBar(col):
     bar2 = alt.Chart(nondefault_sample).transform_joinaggregate(
         total='count(*)').transform_calculate(
         pct='1 / datum.total').mark_bar().encode(
-        x=alt.X(col, axis=alt.Axis(labelAngle = 0)),
+        x=alt.X(col, axis=alt.Axis(labelAngle = 0), sort = educationOrder),
         y=alt.Y('sum(pct):Q', axis=alt.Axis(format='%'), title = 'Percent of Total Observations'),
         color=alt.condition(
         condition,
@@ -255,33 +256,15 @@ for col in categoricalCols:
 
 st.markdown("<h2>IV. Multivariate Exploration</h2>", unsafe_allow_html=True)
 
+### Visualization 1
+
+st.markdown("<p> Use the brush feature to focus on points in either scatterplot. </p>", unsafe_allow_html=True)
+
 
 domain = ['Default', 'No Default']
 range_ = ['#800080', 'steelblue']
 
 brush = alt.selection_interval()
-brush_scatter = alt.Chart(sample).mark_circle(opacity = 0.5).encode(
-    y = alt.Y('AMT_INCOME_TOTAL'),
-    color=alt.condition(brush,'TARGET:N', alt.value('lightgray'), scale=alt.Scale(domain=domain, range=range_))
-).properties(
-    width=350,
-    height=350
-).add_selection(
-    brush
-)
-
-selection = alt.selection_multi(fields=['TARGET'], bind='legend')
-school = alt.Chart(sample).mark_circle(opacity = 0.9).encode(
-    y = alt.Y('NAME_EDUCATION_TYPE'),
-    color=alt.condition(brush,'TARGET:N', alt.value('lightgray'), scale=alt.Scale(domain=domain, range=range_)),
-    size='count()'
-).properties(
-    width=350,
-    height=350
-).add_selection(
-    # brush
-    selection
-)
 
 bars = alt.Chart(sample).mark_bar().encode(
     y='TARGET:O',
@@ -291,14 +274,50 @@ bars = alt.Chart(sample).mark_bar().encode(
     brush
 ).properties(width = 700)
 
-st.write(bars & 
-    (brush_scatter.encode(x='AMT_CREDIT') | brush_scatter.encode(x = 'AMT_ANNUITY')) & 
-    (school.encode(x='AMT_INCOME_TOTAL') | school.encode(x = 'CNT_FAM_MEMBERS'))
+
+brush_scatter = alt.Chart(sample).mark_circle(opacity = 0.5).encode(
+    y = alt.Y('AMT_INCOME_TOTAL'),
+    color=alt.condition(brush,'TARGET:N', alt.value('lightgray'), scale=alt.Scale(domain=domain, range=range_))
+).properties(
+    width=350,
+    height=350
+).add_selection(
+    brush
 )
+st.write(bars & (brush_scatter.encode(x='AMT_CREDIT') | brush_scatter.encode(x = 'AMT_ANNUITY')))
+
+### Visualization 2
+
+st.markdown("<p> Click on the legend to filter by target. </p>", unsafe_allow_html=True)
+
+selection = alt.selection_multi(fields=['TARGET'], bind='legend')
+
+inc_ed = alt.Chart(sample).mark_circle().encode(
+    alt.X('AMT_INCOME_TOTAL'),
+    alt.Y('NAME_EDUCATION_TYPE', sort = educationOrder),
+    size = alt.Size('count()'),
+    color = alt.Color('TARGET:N', scale=alt.Scale(domain=domain, range=range_)),
+    opacity=alt.condition(selection, alt.value(1), alt.value(0.2))
+).properties(
+    width=300,
+    height=350
+).add_selection(selection)
+
+ed_fam = alt.Chart(sample).mark_circle().encode(
+    x=alt.X('CNT_FAM_MEMBERS'),
+    y=alt.Y('NAME_EDUCATION_TYPE', sort = educationOrder),
+    size = alt.Size('count()'),
+    color = alt.Color('TARGET:N', scale=alt.Scale(domain=domain, range=range_)),
+    opacity=alt.condition(selection, alt.value(1), alt.value(0.2))
+).properties(width = 300, height = 350).add_selection(selection)
+
+st.write(alt.hconcat(inc_ed,ed_fam).resolve_scale(size='independent'))
 
 ################## Model Exploration ##################
 
 st.markdown("<h2>Model Exploration</h2>", unsafe_allow_html=True)
+
+st.markdown("<p> To predict whether a card defaulted, a Decision Tree with random oversampling of the defaults was fit to the data. Below shows the most important features in the decision tree, as well as a confusion matrix on the test dataset. </p>", unsafe_allow_html=True)
 
 feature_names = X.columns
 feature_importances = dt.feature_importances_
