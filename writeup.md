@@ -1,6 +1,6 @@
 # Analyzing Credit Card Defaults
 
-(app.gif)
+![](app.gif)
 
 ## Abstract
 Our goal was to create an application that educates people about how financial institutions can use machine learning and personal data to determine how risky lending money to that person will be. Using data from Kaggle (ADD LINK HERE), we created a simple decision tree model that users can interact with to see how different inputs affect the model prediction. We also provide visualizations of the data for individuals to learn about the features and see patterns in the data. Finally, by better understanding our machine learning model and patterns in our data, we hope that people can take the insights they learned to put themselves in a better position to not default on bills in the future. 
