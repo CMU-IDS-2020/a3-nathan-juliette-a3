@@ -60,8 +60,8 @@ def createNumInput(inputName):
 
 st.sidebar.title("Enter Your Own Data!")
 income = createNumInput('Income')
-creditAmount = createNumInput('Credit Amount (the amount of your loan)')
-annuityAmount = createNumInput('Annuity Amount (loan paid back over a set period + interest rate)')
+creditAmount = createNumInput('Credit Amount')
+annuityAmount = createNumInput('Annuity Amount')
 famMembers = st.sidebar.slider('How Many Family Members do you Have?', 0, 20, 1)
 contractType = createRadioInput("Contract Type", ('Cash loans', 'Revolving loans'))
 gender = createRadioInput("Gender", ('M', 'F'))
