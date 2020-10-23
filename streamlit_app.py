@@ -115,11 +115,18 @@ target = dt.predict(userData)
 ################## Input Section ##################
 
 st.markdown("<h2>II. Where Do You Fit In?</h2>", unsafe_allow_html=True)
-st.markdown("<p><i>Enter your own data to see what our model predicts for you!</i></p>", unsafe_allow_html=True)
-st.markdown("<p>Here is the data currently given to our model. </p>", unsafe_allow_html=True)
+appIntro =  """
+            <p>
+                We made this app to help you better understand how machine learning models might 
+                work in the financial industry. <i>Please feel free to enter information on the left
+                side bar to see what our model predicts!</i>
+            </p>
+            """
+st.markdown(appIntro, unsafe_allow_html=True)
+st.markdown("<p>Here is the data that is currently given to the model. This should update immediately after each change.</p>", unsafe_allow_html=True)
 st.write(userData)
 
-
+st.markdown("<h2>III. Model Output</h2>", unsafe_allow_html=True)
 if target == 0:
     st.markdown("<h1>Prediction: <span class='success'>No Default! ✅<span></h1>", unsafe_allow_html=True)
 else:
@@ -129,7 +136,16 @@ else:
 
 ################## Univariate Visualizations ##################
 
-st.markdown("<h2>III. Univariate Exploration</h2>", unsafe_allow_html=True)
+st.markdown("<h2>IV. Univariate Exploration</h2>", unsafe_allow_html=True)
+univariateIntro =  """
+            <p>
+                This section of our app is intended to get you more familar with the data our model is trained on.
+                Our hope is for you to understand the how the distribution of each variable might change for individuals
+                who defaulted on their credit card bill. This should help in giving you more insight into why our model
+                is predicting the way it is. 
+            </p>
+            """
+st.markdown(univariateIntro, unsafe_allow_html=True)
 st.markdown("<p><i>Please note that the pink lines in these visualizations below represent your input.</i></p>", unsafe_allow_html=True)
 
 ### Sample of Data
@@ -251,10 +267,17 @@ categoricalCols = ["CNT_FAM_MEMBERS:O", "NAME_CONTRACT_TYPE", "CODE_GENDER", "NA
 for col in categoricalCols:
     createSideBySideBar(col)
 
-################## Data Exploration ##################
+################## Multivariate ##################
 
-st.markdown("<h2>IV. Multivariate Exploration</h2>", unsafe_allow_html=True)
-
+st.markdown("<h2>V. Multivariate Exploration</h2>", unsafe_allow_html=True)
+multiIntro =  """
+            <p>
+                One of our main goals for this app is to help people minimize their risk of defaulting in the future. 
+                By exploring our data with multiple variables, our hope is for you to better understand the relationship
+                between the variables in our dataset to draw more accurate conclusions.
+            </p>
+            """
+st.markdown(multiIntro, unsafe_allow_html=True)
 
 domain = ['Default', 'No Default']
 range_ = ['#800080', 'steelblue']
@@ -298,7 +321,20 @@ st.write(bars &
 
 ################## Model Exploration ##################
 
-st.markdown("<h2>Model Exploration</h2>", unsafe_allow_html=True)
+st.markdown("<h2>VI. Model Exploration</h2>", unsafe_allow_html=True)
+modelIntro =  """
+            <p>
+                Finally, we want people to understand that machine learning isn't magic. 
+                The first visualization shows the featurs that our model puts the most weight in,
+                and we hope that the visualizations above can help you understand why. 
+            </p>
+            <p>
+                Additionally, we want people to know that machine learning models aren't perfect. The 
+                confusion matrix shows that our model does make errors, so keep in mind that machine
+                learning models on predict future outcomes, not cause them!
+            </p>
+            """
+st.markdown(modelIntro, unsafe_allow_html=True)
 
 feature_names = X.columns
 feature_importances = dt.feature_importances_
