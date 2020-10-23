@@ -343,6 +343,11 @@ modelIntro =  """
                 The first visualization shows the featurs that our model puts the most weight in,
                 and we hope that the visualizations above can help you understand why. 
             </p>
+            <p> 
+                To predict whether a card defaulted, a Decision Tree with random oversampling of the defaults was 
+                fit to the data. Below shows the most important features in the decision tree, as well as a confusion 
+                matrix on the test dataset. 
+            </p>
             <p>
                 Additionally, we want people to know that machine learning models aren't perfect. The 
                 confusion matrix shows that our model does make errors, so keep in mind that machine
@@ -350,8 +355,6 @@ modelIntro =  """
             </p>
             """
 st.markdown(modelIntro, unsafe_allow_html=True)
-
-st.markdown("<p> To predict whether a card defaulted, a Decision Tree with random oversampling of the defaults was fit to the data. Below shows the most important features in the decision tree, as well as a confusion matrix on the test dataset. </p>", unsafe_allow_html=True)
 
 feature_names = X.columns
 feature_importances = dt.feature_importances_
