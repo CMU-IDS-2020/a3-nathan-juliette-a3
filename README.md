@@ -1,4 +1,4 @@
-# CMU Interactive Data Science Assigment 3
+# CMU Interactive Data Science Assigment 3 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/cmu-ids-2020/a3-nathan-juliette-a3)
 
 * **Team members**: Nathan Jen (njen) and Juliette Wong (jnwong)
 * **Online URL**: https://share.streamlit.io/cmu-ids-2020/a3-nathan-juliette-a3
